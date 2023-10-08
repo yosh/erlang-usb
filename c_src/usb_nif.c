@@ -19,6 +19,8 @@
 // As per the USB 3.0 specs, the current maximum limit for the depth is 7.
 #define MAX_DEV_DEPTH (7)
 
+#define MAX_STRING_DESCRIPTOR_LENGTH 255
+
 /* Types */
 static inline uint32_t uintptr_hash_func(uintptr_t key)
 {
@@ -1102,6 +1104,59 @@ static ERL_NIF_TERM usb_nif_write_control(ErlNifEnv* env, int argc, const ERL_NI
     return enif_make_tuple2(env, am_ok, enif_make_int(env, ret));
 }
 
+static ERL_NIF_TERM usb_nif_get_string_descriptor_ascii(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
+{
+    usb_nif_device_handle_t *usb_nif_device_handle;
+    if (!enif_get_resource(env, argv[0], usb_nif_device_handle_resource_type, (void**) &usb_nif_device_handle)) {
+        return enif_make_badarg(env);
+    }
+
+    unsigned int desc_index;
+    if (!enif_get_uint(env, argv[1], &desc_index)) {
+        return enif_make_badarg(env);
+    }
+
+    unsigned char desc_data[MAX_STRING_DESCRIPTOR_LENGTH];
+    int ret = libusb_get_string_descriptor_ascii(usb_nif_device_handle->device_handle, desc_index, desc_data, ARRAY_LENGTH(desc_data));
+    if (ret < LIBUSB_SUCCESS) {
+        return enif_make_tuple2(env, am_error, libusb_error_to_atom(ret));
+    }
+
+    ERL_NIF_TERM data;
+    memcpy((void*)enif_make_new_binary(env, (size_t)ret, &data), (void*)desc_data, (size_t)ret);
+
+    return enif_make_tuple2(env, am_ok, data);
+}
+
+static ERL_NIF_TERM usb_nif_get_string_descriptor(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
+{
+    usb_nif_device_handle_t *usb_nif_device_handle;
+    if (!enif_get_resource(env, argv[0], usb_nif_device_handle_resource_type, (void**) &usb_nif_device_handle)) {
+        return enif_make_badarg(env);
+    }
+
+    unsigned int desc_index;
+    if (!enif_get_uint(env, argv[1], &desc_index)) {
+        return enif_make_badarg(env);
+    }
+
+    unsigned int langid;
+    if (!enif_get_uint(env, argv[1], &langid)) {
+        return enif_make_badarg(env);
+    }
+
+    unsigned char desc_data[MAX_STRING_DESCRIPTOR_LENGTH];
+    int ret = libusb_get_string_descriptor(usb_nif_device_handle->device_handle, desc_index, langid, desc_data, ARRAY_LENGTH(desc_data));
+    if (ret < LIBUSB_SUCCESS) {
+        return enif_make_tuple2(env, am_error, libusb_error_to_atom(ret));
+    }
+
+    ERL_NIF_TERM data;
+    memcpy((void*)enif_make_new_binary(env, (size_t)ret, &data), (void*)desc_data, (size_t)ret);
+
+    return enif_make_tuple2(env, am_ok, data);
+}
+
 static ERL_NIF_TERM usb_nif_detach_kernel_driver(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 {
     usb_nif_device_handle_t *usb_nif_device_handle;
@@ -1334,6 +1389,9 @@ static ErlNifFunc nif_funcs[] = {
 
     {"read_control_nif", 7, usb_nif_read_control, ERL_NIF_DIRTY_JOB_IO_BOUND},
     {"write_control_nif", 7, usb_nif_write_control, ERL_NIF_DIRTY_JOB_IO_BOUND},
+
+    {"get_string_descriptor_ascii_nif", 2, usb_nif_get_string_descriptor_ascii},
+    {"get_string_descriptor_nif", 3, usb_nif_get_string_descriptor},
 
     {"attach_kernel_driver", 2, usb_nif_attach_kernel_driver},
     {"detach_kernel_driver", 2, usb_nif_detach_kernel_driver}

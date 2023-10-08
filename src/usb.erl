@@ -25,6 +25,8 @@
     write_interrupt/4,
     read_control/7,
     write_control/7,
+    get_string_descriptor_ascii/2,
+    get_string_descriptor/3,
     attach_kernel_driver/2,
     detach_kernel_driver/2
 ]).
@@ -325,6 +327,22 @@ write_control(DeviceHandle, RequestType, Request, Value, Index, Data, Timeout) -
 
 %% nif
 write_control_nif(_DeviceHandle,_RequestType, _Request, _Value, _Index, _Data, _Timeout) ->
+    erlang:nif_error(not_loaded).
+
+-spec get_string_descriptor_ascii(device_handle(), non_neg_integer()) -> {ok, binary()} | {error, term}.
+get_string_descriptor_ascii(DeviceHandle, DescIndex) ->
+    get_string_descriptor_ascii_nif(DeviceHandle, DescIndex).
+
+%% nif
+get_string_descriptor_ascii_nif(_DeviceHandle, _DescIndex) ->
+    erlang:nif_error(not_loaded).
+
+-spec get_string_descriptor(device_handle(), non_neg_integer(), non_neg_integer) -> {ok, binary()} | {error, term}.
+get_string_descriptor(DeviceHandle, DescIndex, LangID) ->
+    get_string_descriptor_nif(DeviceHandle, DescIndex, LangID).
+
+%% nif
+get_string_descriptor_nif(_DeviceHandle, _DescIndex, _LangID) ->
     erlang:nif_error(not_loaded).
 
 %
